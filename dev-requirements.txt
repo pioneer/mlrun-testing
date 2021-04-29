@@ -1,0 +1,4 @@
+black
+fabric
+pylint
+pytest

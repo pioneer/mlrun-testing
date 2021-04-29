@@ -1,0 +1,10 @@
+# Remote URL to mlrun service
+export MLRUN_DBPATH="" # <API endpoint of the MLRun APIs service engpoint; e.g., "https://mlrun-api.default-tenant.app.mycluster.iguazio.com">
+# Root artifact path on the remote server
+export MLRUN_ARTIFACT_PATH="" # <remote path; e.g., "/User/artifacts/{{run.project}">
+# Iguazio platform username
+export V3IO_USERNAME="" # <username of a platform user with access to the MLRun service>
+# V3IO data access API URL (copy from the services screen)
+export V3IO_API="" # <API endpoint of the webapi service endpoint; e.g., "https://default-tenant.app.mycluster.iguazio.com:8444">
+# Iguazio V3IO data layer credentials (copy from your user settings)
+export V3IO_ACCESS_KEY="" # <platform access key>
