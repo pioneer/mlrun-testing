@@ -5,9 +5,6 @@ from storey.dtypes import Event
 
 class MultipleOutputStep(MapClass, metaclass=ABCMeta):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     @abstractmethod
     def get_data_iter(self, data):
         yield data

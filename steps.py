@@ -1,10 +1,11 @@
 import os
 import sys
-from mlrun import code_to_function, v3io_cred
+from mlrun import code_to_function, v3io_cred, set_environment
 
 
 def main(deploy=False):
     project_name = os.getenv("PROJECT_NAME", "steps")
+    # set_environment(project=project_name, artifact_path=f"./artifacts")
 
     root_function = code_to_function(
         "step1",
@@ -25,18 +26,19 @@ def main(deploy=False):
     )
 
     if deploy:
-        STEP1_KWARGS = {"class_name": "Step1", "name": "step1"}
+        STEP1_KWARGS = {"class_name": "Step1Gen", "name": "step1"}
         STEP1_V3IO_KWARGS = {"name": "step1_v3io", "path": f'projects/{project_name}/step1'}
         STEP2_KWARGS = {"class_name": "Step2", "name": "step2", "function": "step2"}
         STEP2_V3IO_KWARGS = {"name": "step2_v3io", "path": f'projects/{project_name}/step2'}
     else:
-        STEP1_KWARGS = {"class_name": "functions.step1.Step1", "name": "step1"}
+        STEP1_KWARGS = {"class_name": "functions.step1.Step1Gen", "name": "step1"}
         STEP1_V3IO_KWARGS = {"name": "step1_v3io", "path": ""}
         STEP2_KWARGS = {"class_name": "functions.step2.Step2", "name": "step2"}
         STEP2_V3IO_KWARGS = {"name": "step2_v3io", "path": ""}
 
     (
         graph.to(**STEP1_KWARGS)
+        .to("storey.steps.Flatten")
         .to(">>", **STEP1_V3IO_KWARGS)
         .to(**STEP2_KWARGS)
         .to('>>', **STEP2_V3IO_KWARGS)
@@ -47,7 +49,7 @@ def main(deploy=False):
         root_function.deploy()
     else:
         server = root_function.to_mock_server()
-        server.test(body=5)
+        server.test(body="test.txt")
         server.wait_for_completion()
     
 
