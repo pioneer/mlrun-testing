@@ -1,10 +1,14 @@
-# Simple MLRun graph example with multiple outputs
+# Simple MLRun graph example with multiple outputs using Flatten and error catching
 
-**Step 1:** consumes a single input value, emits multiple values as a generator
+**DataGenerator:** consumes a single input value, emits multiple values as a generator
 
-**Step 2:** consumes each value from Step 1
+**DataEnricher:** consumes each value from DataGenerator, imitates enrichment and error raising/handling
+
+**DataFormatter:** last step, imitates final data processing
 
 # Usage
 
+Create your `mlrun.sh` from `mlrun.sh.template`, fill it with your values. Then run `source mlrun.sh` in order to be able to deploy (not needed for local runs).
+
 - `python main.py` to run the graph locally
-- `python main.py deploy` to deploy to your Iguazio cluster (you'll need environment variables set, see `mlrun.sh.template` for the details)
+- `python main.py deploy` to deploy to your Iguazio cluster (you'll need environment variables set, see the above)
