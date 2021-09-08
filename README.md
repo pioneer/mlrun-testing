@@ -6,5 +6,5 @@
 
 # Usage
 
-- `python steps.py` to run the graph locally
-- `python steps.py deploy` to deploy to your Iguazio cluster (you'll need environment variables set, see `mlrun.sh.template` for the details)
+- `python main.py` to run the graph locally
+- `python main.py deploy` to deploy to your Iguazio cluster (you'll need environment variables set, see `mlrun.sh.template` for the details)
