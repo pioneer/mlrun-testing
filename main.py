@@ -37,22 +37,22 @@ MockEvent.copy = _mockevent_copy
 
 def main(deploy=False):
     project_name = os.getenv("PROJECT_NAME", "mlrun-testing-uv-st")
-    error_stream = (f"/projects/{project_name}/errors" if deploy else "",)
+    error_stream = (f"v3io:///projects/{project_name}/errors" if deploy else "",)
 
     root_function = code_to_function(
-        "data_generator",
+        "data-generator",
         project=project_name,
         filename="handler.py",
         kind="serving",
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
-    root_function.spec.error_stream = error_stream
+    # root_function.spec.error_stream = error_stream
 
     graph = root_function.set_topology("flow", engine="async", exist_ok=True)
 
     data_enricher_function = root_function.add_child_function(
-        "data_enricher",
+        "data-enricher",
         url="handler.py",
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
@@ -60,7 +60,7 @@ def main(deploy=False):
     data_enricher_function.spec.error_stream = error_stream
 
     data_formatter_function = root_function.add_child_function(
-        "data_formatter",
+        "data-formatter",
         url="handler.py",
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
@@ -73,28 +73,28 @@ def main(deploy=False):
         .to(
             ">>",
             name="data_generator_v3io",
-            path=f"/projects/{project_name}/data_generator/output" if deploy else "",
+            path=f"v3io:///projects/{project_name}/data_generator/output" if deploy else "",
         )
         .to(
             "DataEnricher",
             name="data_enricher",
-            function="data_enricher" if deploy else None,
+            function="data-enricher" if deploy else None,
         )
         .error_handler("error_catcher")
         .to(
             ">>",
             name="data_enricher_v3io",
-            path=f"/projects/{project_name}/data_enricher/output" if deploy else "",
+            path=f"v3io:///projects/{project_name}/data_enricher/output" if deploy else "",
         )
         .to(
             "DataFormatter",
             name="data_formatter",
-            function="data_formatter" if deploy else None,
+            function="data-formatter" if deploy else None,
         )
         .to(
             ">>",
             name="data_formatter_v3io",
-            path=f"/projects/{project_name}/data_formatter/output" if deploy else "",
+            path=f"v3io:///projects/{project_name}/data_formatter/output" if deploy else "",
         )
     )
     graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
