@@ -1,14 +1,10 @@
 import os
 import sys
-import json
 from mlrun import code_to_function, v3io_cred, set_environment
 from storey.steps import Flatten
 from copy import deepcopy
 from mlrun.serving.server import MockEvent
-from steps.data_generator import DataGenerator
-from steps.data_enricher import DataEnricher
-from steps.data_formatter import DataFormatter
-from steps.error_catcher import ErrorCatcher
+from handler import *
 
 
 def _mockevent_copy(
@@ -41,31 +37,35 @@ MockEvent.copy = _mockevent_copy
 
 def main(deploy=False):
     project_name = os.getenv("PROJECT_NAME", "mlrun-testing-uv-st")
+    error_stream = (f"/projects/{project_name}/errors" if deploy else "",)
 
     root_function = code_to_function(
         "data_generator",
         project=project_name,
-        filename="function_runner.py",
+        filename="handler.py",
         kind="serving",
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
+    root_function.spec.error_stream = error_stream
 
     graph = root_function.set_topology("flow", engine="async", exist_ok=True)
 
     data_enricher_function = root_function.add_child_function(
         "data_enricher",
-        url="function_runner.py",
+        url="handler.py",
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
+    data_enricher_function.spec.error_stream = error_stream
 
     data_formatter_function = root_function.add_child_function(
         "data_formatter",
-        url="function_runner.py",
+        url="handler.py",
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
+    data_formatter_function.spec.error_stream = error_stream
 
     (
         graph.to("DataGenerator", name="data_generator")
