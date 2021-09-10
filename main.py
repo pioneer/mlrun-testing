@@ -73,16 +73,16 @@ def main(deploy=False):
     data_formatter_stream = (
         f"v3io:///projects/{project_name}/data_formatter/output" if deploy else ""
     )
-    error_stream = f"v3io:///projects/{project_name}/errors" if deploy else ""
+    # error_stream = f"v3io:///projects/{project_name}/errors" if deploy else ""
 
-    if deploy:
-        for stream_name in [
-            data_generator_stream,
-            data_enricher_stream,
-            data_formatter_stream,
-            error_stream,
-        ]:
-            _try_create_v3io_stream(stream_name)
+    # if deploy:
+    #     for stream_name in [
+    #         data_generator_stream,
+    #         data_enricher_stream,
+    #         data_formatter_stream,
+    #         # error_stream,
+    #     ]:
+    #         _try_create_v3io_stream(stream_name)
 
     root_function = code_to_function(
         "data-generator",
@@ -92,7 +92,7 @@ def main(deploy=False):
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
-    root_function.spec.error_stream = error_stream
+    # root_function.spec.error_stream = error_stream
 
     graph = root_function.set_topology("flow", engine="async", exist_ok=True)
 
@@ -102,7 +102,7 @@ def main(deploy=False):
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
-    data_enricher_function.spec.error_stream = error_stream
+    # data_enricher_function.spec.error_stream = error_stream
 
     data_formatter_function = root_function.add_child_function(
         "data-formatter",
@@ -110,7 +110,7 @@ def main(deploy=False):
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
-    data_formatter_function.spec.error_stream = error_stream
+    # data_formatter_function.spec.error_stream = error_stream
 
     (
         graph.to("DataGenerator", name="data_generator")
@@ -125,7 +125,7 @@ def main(deploy=False):
             name="data_enricher",
             function="data-enricher" if deploy else None,
         )
-        .error_handler("error_catcher")
+        # .error_handler("error_catcher")
         .to(
             ">>",
             name="data_enricher_v3io",
@@ -142,7 +142,7 @@ def main(deploy=False):
             path=data_formatter_stream,
         )
     )
-    graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
+    # graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
 
     if deploy:
         root_function.apply(v3io_cred())
