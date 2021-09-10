@@ -154,7 +154,7 @@ def main(deploy=False):
                 "chunk_size": 100,
                 "num_events": 100,
                 "max_fact": 100,
-                "err_rate": 0.1,
+                "err_rate": 0,
             }
         )
         server.wait_for_completion()
