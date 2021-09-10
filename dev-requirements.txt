@@ -1,4 +1,4 @@
 black
-fabric
+invoke
 pylint
 pytest

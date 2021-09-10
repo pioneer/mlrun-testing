@@ -119,6 +119,7 @@ def main(deploy=False):
             ">>",
             name="data_generator_v3io",
             path=data_generator_stream,
+            seek_to="EARLIEST"
         )
         .to(
             "DataEnricher",
@@ -130,6 +131,7 @@ def main(deploy=False):
             ">>",
             name="data_enricher_v3io",
             path=data_enricher_stream,
+            seek_to="EARLIEST"
         )
         .to(
             "DataFormatter",
@@ -140,6 +142,7 @@ def main(deploy=False):
             ">>",
             name="data_formatter_v3io",
             path=data_formatter_stream,
+            seek_to="EARLIEST"
         )
     )
     # graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
