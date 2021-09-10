@@ -4,6 +4,7 @@ import math
 import uuid
 import string
 from rand_string.rand_string import RandString
+import json
 from storey import MapClass
 from storey.dtypes import Event
 
@@ -33,14 +34,27 @@ class BaseStep:
             context.logger, f"{self.__class__.__name__} |>"
         )
 
+    def _pre_do(self, data):
+        if isinstance(data, bytes):
+            data = json.loads(data.decode("utf-8"))
+        return data
+
+    def _do(self, data):
+        return data
+
+    async def do(self, data):
+        data = self._pre_do(data)
+        data = self._do(data)
+        return data
+
 
 class DataGenerator(BaseStep):
     def get_data_iter(self, data):
         self.logger.info(f"get_data_iter: {data}, {type(data)}")
-        chunk_size = data.get("chunk_size", 1024)
-        num_events = data.get("num_events", 1000)
-        max_fact = data.get("max_fact", 1000)
-        err_rate = data.get("err_rate", 0.9)
+        chunk_size = data.get("chunk_size", 100)
+        num_events = data.get("num_events", 100)
+        max_fact = data.get("max_fact", 100)
+        err_rate = data.get("err_rate", 0.1)
         for i in range(num_events):
             item = {
                 "run_id": data["run_id"],
@@ -52,25 +66,25 @@ class DataGenerator(BaseStep):
             self.logger.info(f"Output: {item}")
             yield item
 
-    async def do(self, data):
+    def _do(self, data):
         self.logger.info(f"Input: {data}")
         data["run_id"] = str(uuid.uuid4())
         return self.get_data_iter(data)
 
 
 class DataEnricher(BaseStep):
-    def do(self, data):
+    def _do(self, data):
         self.logger.info(f"Input: {data}")
         MULTIPLIER = 1000
         if random.randint(1, MULTIPLIER) > MULTIPLIER * (1 - data["err_rate"]):
-            1 / 0
+            raise Exception("Enrichment error")
         data["enriched"] = math.factorial(random.randint(1, data["max_fact"]))
         self.logger.info(f"Output: {data}")
         return data
 
 
 class DataFormatter(BaseStep):
-    def do(self, data):
+    def _do(self, data):
         self.logger.info(f"Input: {data}")
         data["formatted"] = "".join(
             [s for s in data["content"].lower() if s in string.ascii_lowercase]
@@ -80,6 +94,6 @@ class DataFormatter(BaseStep):
 
 
 class ErrorCatcher(BaseStep):
-    def do(self, data):
+    def _do(self, data):
         self.logger.info(f"Input: {data}")
         return data

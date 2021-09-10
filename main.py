@@ -1,9 +1,11 @@
 import os
 import sys
+from copy import deepcopy
+import traceback
 from mlrun import code_to_function, v3io_cred, set_environment
 from storey.steps import Flatten
-from copy import deepcopy
 from mlrun.serving.server import MockEvent
+import v3io.dataplane
 from handler import *
 
 
@@ -35,9 +37,52 @@ def _mockevent_copy(
 MockEvent.copy = _mockevent_copy
 
 
+def _remove_stream_container(path):
+    if path.startswith("v3io://"):
+        path = path[7:]
+    return "/" + "/".join(path.split("/")[2:])
+
+
+def _try_create_v3io_stream(stream_name):
+    v3io_client = v3io.dataplane.Client(
+        endpoint=os.environ["V3IO_API"], access_key=os.environ["V3IO_ACCESS_KEY"]
+    )
+    try:
+        stream_path = _remove_stream_container(stream_name)
+        print(f"Removing '{stream_path}' if exists...")
+        try:
+            v3io_client.delete_stream("projects", stream_path)
+        except RuntimeError as e:
+            print(f"This may be not an error: {e}")
+        print(f"Creating '{stream_path}'...")
+        v3io_client.create_stream("projects", stream_path, shard_count=1)
+    except:
+        print("v" * 15 + " THIS MAY BE NOT AN ERROR!!! " + "v" * 15)
+        traceback.print_exc()
+        print("^" * 15 + " THIS MAY BE NOT AN ERROR!!! " + "^" * 15)
+
+
 def main(deploy=False):
     project_name = os.getenv("PROJECT_NAME", "mlrun-testing-uv-st")
-    error_stream = (f"v3io:///projects/{project_name}/errors" if deploy else "",)
+    data_generator_stream = (
+        f"v3io:///projects/{project_name}/data_generator/output" if deploy else ""
+    )
+    data_enricher_stream = (
+        f"v3io:///projects/{project_name}/data_enricher/output" if deploy else ""
+    )
+    data_formatter_stream = (
+        f"v3io:///projects/{project_name}/data_formatter/output" if deploy else ""
+    )
+    error_stream = f"v3io:///projects/{project_name}/errors" if deploy else ""
+
+    if deploy:
+        for stream_name in [
+            data_generator_stream,
+            data_enricher_stream,
+            data_formatter_stream,
+            error_stream,
+        ]:
+            _try_create_v3io_stream(stream_name)
 
     root_function = code_to_function(
         "data-generator",
@@ -47,7 +92,7 @@ def main(deploy=False):
         image=os.getenv("BASE_IMAGE", "mlrun/mlrun"),
         requirements=["storey", "rand_string"],
     )
-    # root_function.spec.error_stream = error_stream
+    root_function.spec.error_stream = error_stream
 
     graph = root_function.set_topology("flow", engine="async", exist_ok=True)
 
@@ -73,7 +118,7 @@ def main(deploy=False):
         .to(
             ">>",
             name="data_generator_v3io",
-            path=f"v3io:///projects/{project_name}/data_generator/output" if deploy else "",
+            path=data_generator_stream,
         )
         .to(
             "DataEnricher",
@@ -84,7 +129,7 @@ def main(deploy=False):
         .to(
             ">>",
             name="data_enricher_v3io",
-            path=f"v3io:///projects/{project_name}/data_enricher/output" if deploy else "",
+            path=data_enricher_stream,
         )
         .to(
             "DataFormatter",
@@ -94,7 +139,7 @@ def main(deploy=False):
         .to(
             ">>",
             name="data_formatter_v3io",
-            path=f"v3io:///projects/{project_name}/data_formatter/output" if deploy else "",
+            path=data_formatter_stream,
         )
     )
     graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
