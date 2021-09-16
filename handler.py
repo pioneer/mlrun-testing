@@ -55,6 +55,7 @@ class DataGenerator(BaseStep):
         num_events = data.get("num_events", 100)
         max_fact = data.get("max_fact", 100)
         err_rate = data.get("err_rate", 0.1)
+        none_count = data.get("none_count", 0)
         for i in range(num_events):
             item = {
                 "run_id": data["run_id"],
@@ -65,19 +66,33 @@ class DataGenerator(BaseStep):
             }
             self.logger.info(f"Output: {item}")
             yield item
+        if none_count:
+            for _ in range(none_count):
+                yield None
 
     def _do(self, data):
         self.logger.info(f"Input: {data}")
         data["run_id"] = str(uuid.uuid4())
+        if data.get("__empty"):
+            self.logger.info(f"Output: {[]} [received __empty: True]")
+            return []
         return self.get_data_iter(data)
+
+
+class DataAdder(BaseStep):
+    def _do(self, data):
+        self.logger.info(f"Input: {data}")
+        data["added"] = "added"
+        self.logger.info(f"Output: {data}")
+        return data
 
 
 class DataEnricher(BaseStep):
     def _do(self, data):
         self.logger.info(f"Input: {data}")
         MULTIPLIER = 1000
-        if random.randint(1, MULTIPLIER) > MULTIPLIER * (1 - data["err_rate"]):
-            raise Exception("Enrichment error")
+        # if random.randint(1, MULTIPLIER) > MULTIPLIER * (1 - data["err_rate"]):
+        #     raise Exception("Enrichment error")
         data["enriched"] = math.factorial(random.randint(1, data["max_fact"]))
         self.logger.info(f"Output: {data}")
         return data

@@ -64,15 +64,10 @@ def _try_create_v3io_stream(stream_name):
 
 def main(deploy=False):
     project_name = os.getenv("PROJECT_NAME", "mlrun-testing-uv-st")
-    data_generator_stream = (
-        f"v3io:///projects/{project_name}/data_generator/output" if deploy else ""
-    )
-    data_enricher_stream = (
-        f"v3io:///projects/{project_name}/data_enricher/output" if deploy else ""
-    )
-    data_formatter_stream = (
-        f"v3io:///projects/{project_name}/data_formatter/output" if deploy else ""
-    )
+    print(f"PROJECT_NAME: {project_name}")
+    data_generator_stream = f"v3io:///projects/{project_name}/data_generator/output" if deploy else ""
+    data_enricher_stream = f"v3io:///projects/{project_name}/data_enricher/output" if deploy else ""
+    data_formatter_stream = f"v3io:///projects/{project_name}/data_formatter/output" if deploy else ""
     # error_stream = f"v3io:///projects/{project_name}/errors" if deploy else ""
 
     # if deploy:
@@ -116,22 +111,28 @@ def main(deploy=False):
         graph.to("DataGenerator", name="data_generator")
         .to("storey.steps.Flatten")
         .to(
+            "DataAdder",
+            name="data_adder"
+        )
+        .to(
             ">>",
             name="data_generator_v3io",
             path=data_generator_stream,
-            seek_to="EARLIEST"
+            seek_to="EARLIEST",
+            shards=4
         )
         .to(
             "DataEnricher",
             name="data_enricher",
-            function="data-enricher" if deploy else None,
+            function="data-enricher" if deploy else None
         )
         # .error_handler("error_catcher")
         .to(
             ">>",
             name="data_enricher_v3io",
             path=data_enricher_stream,
-            seek_to="EARLIEST"
+            seek_to="EARLIEST",
+            shards=4
         )
         .to(
             "DataFormatter",
@@ -142,7 +143,8 @@ def main(deploy=False):
             ">>",
             name="data_formatter_v3io",
             path=data_formatter_stream,
-            seek_to="EARLIEST"
+            seek_to="EARLIEST",
+            shards=4
         )
     )
     # graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
@@ -158,6 +160,8 @@ def main(deploy=False):
                 "num_events": 100,
                 "max_fact": 100,
                 "err_rate": 0,
+                # "__empty": True,
+                "none_count": 1,
             }
         )
         server.wait_for_completion()
