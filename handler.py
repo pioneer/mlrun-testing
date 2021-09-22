@@ -54,7 +54,7 @@ class DataGenerator(BaseStep):
         chunk_size = data.get("chunk_size", 100)
         num_events = data.get("num_events", 100)
         max_fact = data.get("max_fact", 100)
-        err_rate = data.get("err_rate", 0.1)
+        err_rate = data.get("err_rate", 0)
         none_count = data.get("none_count", 0)
         for i in range(num_events):
             item = {
@@ -68,6 +68,7 @@ class DataGenerator(BaseStep):
             yield item
         if none_count:
             for _ in range(none_count):
+                self.logger.info(f"Output: {None}")
                 yield None
 
     def _do(self, data):
@@ -91,8 +92,8 @@ class DataEnricher(BaseStep):
     def _do(self, data):
         self.logger.info(f"Input: {data}")
         MULTIPLIER = 1000
-        # if random.randint(1, MULTIPLIER) > MULTIPLIER * (1 - data["err_rate"]):
-        #     raise Exception("Enrichment error")
+        if random.randint(1, MULTIPLIER) > MULTIPLIER * (1 - data["err_rate"]):
+            raise Exception("Enrichment error")
         data["enriched"] = math.factorial(random.randint(1, data["max_fact"]))
         self.logger.info(f"Output: {data}")
         return data
