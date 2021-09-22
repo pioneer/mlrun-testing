@@ -62,8 +62,15 @@ def _try_create_v3io_stream(stream_name):
         print("^" * 15 + " THIS MAY BE NOT AN ERROR!!! " + "^" * 15)
 
 
+PROJECT_NAME = "mlrun-testing-uv-st"
+REQUIREMENTS = ["mlrun==0.7.1", "storey==0.7.8", "rand_string"]
+BASE_IMAGE = "python:3.8"  # "mlrun/mlrun"
+SEEK_TO = "EARLIEST"
+SHARDS = 1  # 4
+
+
 def main(deploy=False):
-    project_name = os.getenv("PROJECT_NAME", "mlrun-testing-uv-st")
+    project_name = os.getenv("PROJECT_NAME", PROJECT_NAME)
     print(f"PROJECT_NAME: {project_name}")
     data_generator_stream = f"v3io:///projects/{project_name}/data_generator/output" if deploy else ""
     data_enricher_stream = f"v3io:///projects/{project_name}/data_enricher/output" if deploy else ""
@@ -84,8 +91,8 @@ def main(deploy=False):
         project=project_name,
         filename="handler.py",
         kind="serving",
-        image=os.getenv("BASE_IMAGE", "python:3.8"), # "mlrun/mlrun"),
-        requirements=["mlrun==0.7.1", "storey==0.7.8", "rand_string"],
+        image=os.getenv("BASE_IMAGE", BASE_IMAGE),
+        requirements=REQUIREMENTS,
     )
     root_function.spec.error_stream = error_stream
 
@@ -94,16 +101,16 @@ def main(deploy=False):
     data_enricher_function = root_function.add_child_function(
         "data-enricher",
         url="handler.py",
-        image=os.getenv("BASE_IMAGE", "python:3.8"), # "mlrun/mlrun"),
-        requirements=["mlrun==0.7.1", "storey==0.7.8", "rand_string"],
+        image=os.getenv("BASE_IMAGE", BASE_IMAGE),
+        requirements=REQUIREMENTS,
     )
     data_enricher_function.spec.error_stream = error_stream
 
     data_formatter_function = root_function.add_child_function(
         "data-formatter",
         url="handler.py",
-        image=os.getenv("BASE_IMAGE", "python:3.8"), # "mlrun/mlrun"),
-        requirements=["mlrun==0.7.1", "storey==0.7.8", "rand_string"],
+        image=os.getenv("BASE_IMAGE", BASE_IMAGE),
+        requirements=REQUIREMENTS,
     )
     data_formatter_function.spec.error_stream = error_stream
 
@@ -118,8 +125,8 @@ def main(deploy=False):
             ">>",
             name="data_generator_v3io",
             path=data_generator_stream,
-            seek_to="EARLIEST",
-            shards=1
+            seek_to=SEEK_TO,
+            shards=SHARDS
         )
         .to(
             "DataEnricher",
@@ -131,8 +138,8 @@ def main(deploy=False):
             ">>",
             name="data_enricher_v3io",
             path=data_enricher_stream,
-            seek_to="EARLIEST",
-            shards=1
+            seek_to=SEEK_TO,
+            shards=SHARDS
         )
         .to(
             "DataFormatter",
@@ -143,8 +150,8 @@ def main(deploy=False):
             ">>",
             name="data_formatter_v3io",
             path=data_formatter_stream,
-            seek_to="EARLIEST",
-            shards=1
+            seek_to=SEEK_TO,
+            shards=SHARDS
         )
     )
     graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
