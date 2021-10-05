@@ -65,6 +65,7 @@ def _try_create_v3io_stream(stream_name):
 PROJECT_NAME = "mlrun-testing-uv-st"
 REQUIREMENTS = ["mlrun==0.7.1", "storey==0.7.8", "rand_string"]
 BASE_IMAGE = "python:3.8"  # "mlrun/mlrun"
+# SEEK_TO = "LATEST"
 SEEK_TO = "EARLIEST"
 SHARDS = 1  # 4
 
@@ -97,6 +98,7 @@ def main(deploy=False):
     root_function.spec.error_stream = error_stream
 
     graph = root_function.set_topology("flow", engine="async", exist_ok=True)
+    # graph.error_handler("error_catcher")
 
     data_enricher_function = root_function.add_child_function(
         "data-enricher",
@@ -113,6 +115,13 @@ def main(deploy=False):
         requirements=REQUIREMENTS,
     )
     data_formatter_function.spec.error_stream = error_stream
+
+    # error_handling_function = root_function.add_child_function(
+    #     "error-handler",
+    #     url="handler.py",
+    #     image=os.getenv("BASE_IMAGE", BASE_IMAGE),
+    #     requirements=REQUIREMENTS,
+    # )
 
     (
         graph.to("DataGenerator", name="data_generator")
@@ -154,7 +163,14 @@ def main(deploy=False):
             shards=SHARDS
         )
     )
-    graph.add_step("ErrorCatcher", name="error_catcher", full_event=True, after="")
+    graph.add_step(
+        "ErrorCatcher",
+        name="error_catcher",
+        full_event=True,
+        # after="",
+        function="*"
+    )
+    # graph.add_step(class_name="ErrorCatcher", name="error_catcher", full_event=True, function="*")
 
     if deploy:
         root_function.apply(v3io_cred())
@@ -164,9 +180,9 @@ def main(deploy=False):
         server.test(
             body={
                 "chunk_size": 100,
-                "num_events": 3,
+                "num_events": 10,
                 "max_fact": 100,
-                "err_rate": 0,
+                "err_rate": 0.5,
                 # "__empty": True,
                 "none_count": 0,
             }

@@ -93,7 +93,7 @@ class DataEnricher(BaseStep):
         self.logger.info(f"Input: {data}")
         MULTIPLIER = 1000
         if random.randint(1, MULTIPLIER) > MULTIPLIER * (1 - data["err_rate"]):
-            raise Exception("Enrichment error")
+            raise Exception(f"Enrichment error, run_id: {data['run_id']}, event_num: {data['event_num']}")
         data["enriched"] = math.factorial(random.randint(1, data["max_fact"]))
         self.logger.info(f"Output: {data}")
         return data
@@ -112,4 +112,18 @@ class DataFormatter(BaseStep):
 class ErrorCatcher(BaseStep):
     def _do(self, data):
         self.logger.info(f"Input: {data}")
+        self.logger.info(f"Input: {data.body}")
+        self.logger.info(f"Input: {data.content_type}")
+        self.logger.info(f"Input: {data.origin_state}")
+        self.logger.info(f"Input: {data.error}")
+        self.logger.info(f"Input: {data.trigger}")
+        self.logger.info(f"Input: {data.fields}")
+        self.logger.info(f"Input: {data.headers}")
+        self.logger.info(f"Input: {data.method}")
+        self.logger.info(f"Input: {data.path}")
+        self.logger.info(f"Input: {data.size}")
+        self.logger.info(f"Input: {data.timestamp}")
+        self.logger.info(f"Input: {data.url}")
+        self.logger.info(f"Input: {data.shard_id}")
+        self.logger.info(f"Input: {data.num_shards}")
         return data
